@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vidcrop-config
+data:
+  PORT: "3000"
+  STORAGE_SERVICE_URL: "http://storage-service:5000"

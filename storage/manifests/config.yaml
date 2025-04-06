@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: storage-config
+data:
+  MINIO_ENDPOINT: "minio-service"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET: "uploads"
+  STORAGE_SERVICE_PORT: "5000"
