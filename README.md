@@ -112,7 +112,9 @@ Add this line to the bottom:
 This maps the domain `vidcrop.com` to your local machine.
 
 ### 5. 📄 Apply Kubernetes YAML Configs
-From all of the 'manifests' directories, run:
+Check **secret.yaml.template** files and replace values like <your-secret> with actual secrets.
+
+After this, from all of the 'manifests' directories, run:
 
 ```bash
 kubectl apply -f .
