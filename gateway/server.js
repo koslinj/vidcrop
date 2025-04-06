@@ -1,19 +1,32 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
+const multer = require("multer");
+const FormData = require("form-data");
 
 const app = express();
 const PORT = process.env.PORT;
 const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL; // File service URL
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 app.use(express.json());
 
 // Upload Route (Proxy to Storage Service)
-app.post("/upload", async (req, res) => {
+app.post("/upload", upload.single('video'), async (req, res) => {
   try {
-    const response = await axios.post(`${STORAGE_SERVICE_URL}/upload`, req.body, {
-      headers: req.headers, // Forward headers
-    });
+    // Ensure a file is provided
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Create form data to send to the other service
+    const form = new FormData();
+    form.append('video', req.file.buffer, { filename: req.file.originalname });
+
+    // Forward the video to the other service
+    const response = await axios.post(`${STORAGE_SERVICE_URL}/upload`, form);
     res.status(response.status).json(response.data);
   } catch (error) {
     console.error("🚨 Upload Proxy Error:", error.response?.data || error.message);
