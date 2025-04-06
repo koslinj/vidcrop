@@ -32,5 +32,5 @@ spec:
       volumes:
       - name: minio-storage
         hostPath:
-          path: /xd
+          path: /vidcrop-volume-minikube
           type: DirectoryOrCreate
