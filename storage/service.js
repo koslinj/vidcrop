@@ -2,9 +2,16 @@ require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const Minio = require("minio");
+const { connectRabbitMQ, sendToQueue } = require("./queue");
 
 const app = express();
 const PORT = process.env.STORAGE_SERVICE_PORT;
+
+// Initialize RabbitMQ on app startup
+connectRabbitMQ().catch((err) => {
+  console.error("❌ Failed to connect to RabbitMQ:", err);
+  process.exit(1);
+});
 
 // MinIO Client Configuration
 const minioClient = new Minio.Client({
@@ -40,22 +47,26 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
-  const fileName = `${Date.now()}-${req.file.originalname}`;
+  const actualTime = Date.now()
+  const fileName = `${actualTime}-${req.file.originalname}`;
   const metaData = { "Content-Type": req.file.mimetype };
 
   try {
     await minioClient.putObject(BUCKET_NAME, fileName, req.file.buffer, metaData);
-    
-    const fileUrl = `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${BUCKET_NAME}/${fileName}`;
+
+    sendToQueue({
+      filename: fileName,
+      mimetype: req.file.mimetype,
+      uploadedAt: new Date(actualTime).toISOString(),
+    });
 
     res.json({
       message: "File uploaded successfully",
       filename: fileName,
-      url: fileUrl,
     });
   } catch (error) {
-    console.error("🚨 MinIO Upload Error:", error);
-    res.status(500).json({ error: "File upload failed" });
+    console.error("🚨 Upload or MQ Error:", error);
+    res.status(500).json({ error: "File upload or message queue failed" });
   }
 });
 
@@ -65,7 +76,7 @@ app.get("/download/:filename", async (req, res) => {
 
   try {
     const objectStream = await minioClient.getObject(BUCKET_NAME, filename);
-    
+
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", "application/octet-stream");
     objectStream.pipe(res);
