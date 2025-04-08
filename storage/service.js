@@ -75,7 +75,7 @@ app.get("/download/:filename", async (req, res) => {
   const { filename } = req.params;
 
   try {
-    console.log("Downloading file: ", filename)
+    console.log("Looking for file: ", filename)
     const objectStream = await minioClient.getObject(BUCKET_NAME, filename);
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
