@@ -38,7 +38,7 @@ app.post("/upload", upload.single('video'), async (req, res) => {
 app.get("/download/:filename", async (req, res) => {
   try {
     const response = await axios({
-      url: `${STORAGE_SERVICE_URL}/download/${req.params.filename}`,
+      url: `${STORAGE_SERVICE_URL}/download/${encodeURIComponent(req.params.filename)}`,
       method: "GET",
       responseType: "stream",
     });
