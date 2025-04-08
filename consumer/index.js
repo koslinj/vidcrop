@@ -21,26 +21,30 @@ function cropVideoStream(inputStream) {
   const outputStream = new PassThrough();
 
   ffmpeg(inputStream)
-    .format('mp4')
-    .videoFilters('crop=in_h:in_h') // square crop
-    .on('start', (cmd) => console.log('FFmpeg started:', cmd))
-    .on('error', (err) => {
-      console.error('FFmpeg error:', err.message);
-      outputStream.destroy(err);
-    })
-    .on('end', () => {
-      console.log('Video processing finished.');
-    })
-    .pipe(outputStream, { end: true });
+  .inputFormat('mp4')
+  .noAudio() // try skipping audio to simplify
+  .videoFilters('crop=in_w:in_w')
+  .format('mp4')
+  .outputOptions('-movflags frag_keyframe+empty_moov')
+  .on('start', cmd => console.log('FFmpeg started:', cmd))
+  .on('stderr', line => console.log('FFmpeg stderr:', line)) // 👈 super helpful
+  .on('error', err => {
+    console.error('FFmpeg error:', err.message);
+    outputStream.destroy(err);
+  })
+  .on('end', () => {
+    console.log('Video processing finished.');
+  })
+  .pipe(outputStream, { end: true });
 
   return outputStream;
 }
 
-async function processVideo(videoKey) {
-  const croppedKey = `cropped/${videoKey.replace(/^.*[\\/]/, '')}`;
+async function processVideo(filename) {
+  const croppedKey = `cropped/${filename}`;
 
   return new Promise((resolve, reject) => {
-    minio.getObject(BUCKET, videoKey, (err, dataStream) => {
+    minio.getObject(BUCKET, filename, (err, dataStream) => {
       if (err) return reject(err);
 
       const croppedStream = cropVideoStream(dataStream);
@@ -67,11 +71,11 @@ async function startWorker() {
     async (msg) => {
       if (!msg) return;
 
-      const { videoKey } = JSON.parse(msg.content.toString());
-      console.log(`Received videoKey: ${videoKey}`);
+      const { filename } = JSON.parse(msg.content.toString());
+      console.log(`Received file named: ${filename}`);
 
       try {
-        await processVideo(videoKey);
+        await processVideo(filename);
         channel.ack(msg);
       } catch (err) {
         console.error('Failed to process video:', err.message);
