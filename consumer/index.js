@@ -22,12 +22,11 @@ function cropVideoStream(inputStream) {
 
   ffmpeg(inputStream)
   .inputFormat('mp4')
-  .noAudio() // try skipping audio to simplify
-  .videoFilters('crop=in_w:in_w')
+  .videoFilters("crop='min(iw,ih)':'min(iw,ih)'")
   .format('mp4')
   .outputOptions('-movflags frag_keyframe+empty_moov')
   .on('start', cmd => console.log('FFmpeg started:', cmd))
-  .on('stderr', line => console.log('FFmpeg stderr:', line)) // 👈 super helpful
+  .on('stderr', line => console.log('FFmpeg stderr:', line))
   .on('error', err => {
     console.error('FFmpeg error:', err.message);
     outputStream.destroy(err);
