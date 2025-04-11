@@ -6,6 +6,7 @@ const { PassThrough } = require('stream');
 // === CONFIG ===
 const RABBITMQ_URL = process.env.RABBITMQ_URL;
 const QUEUE = process.env.RABBITMQ_QUEUE;
+const NOTIFICATION_QUEUE = process.env.RABBITMQ_NOTIF_QUEUE;
 const BUCKET = process.env.MINIO_BUCKET;
 
 const minio = new Minio.Client({
@@ -51,7 +52,7 @@ async function processVideo(filename) {
       minio.putObject(BUCKET, croppedKey, croppedStream, (err, etag) => {
         if (err) return reject(err);
         console.log(`Uploaded cropped video: ${croppedKey}`);
-        resolve(etag);
+        resolve(croppedKey);
       });
     });
   });
@@ -62,6 +63,7 @@ async function startWorker() {
   const conn = await amqp.connect(RABBITMQ_URL);
   const channel = await conn.createChannel();
   await channel.assertQueue(QUEUE, { durable: true });
+  await channel.assertQueue(NOTIFICATION_QUEUE, { durable: true });
 
   console.log(`Waiting for messages in queue: ${QUEUE}`);
 
@@ -74,7 +76,15 @@ async function startWorker() {
       console.log(`Received file named: ${filename}`);
 
       try {
-        await processVideo(filename);
+        const croppedKey = await processVideo(filename);
+
+        const notificationMessage = {
+          email: "test@example.com",
+          filename: croppedKey,
+        };
+
+        channel.sendToQueue(NOTIFICATION_QUEUE, Buffer.from(JSON.stringify(notificationMessage)));
+
         channel.ack(msg);
       } catch (err) {
         console.error('Failed to process video:', err.message);
