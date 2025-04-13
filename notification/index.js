@@ -1,29 +1,23 @@
 const amqp = require('amqplib');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 // === CONFIG ===
 const RABBITMQ_URL = process.env.RABBITMQ_URL;
 const QUEUE = process.env.RABBITMQ_QUEUE;
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-// Email config (use env variables in real app!)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT),
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// === Initialize Resend ===
+const resend = new Resend(RESEND_API_KEY);
 
 async function sendEmail(to, subject, text) {
-  const info = await transporter.sendMail({
-    from: "Video Processor <vidcrop.com>",
+  const result = await resend.emails.send({
+    from: 'Video Processor <onboarding@resend.dev>', // or your verified domain sender
     to,
     subject,
     text,
   });
 
-  console.log('Email sent:', info.messageId);
+  console.log('Email sent:', result);
 }
 
 async function startNotificationWorker() {
@@ -49,9 +43,9 @@ async function startNotificationWorker() {
           'Your video has been processed!',
           `The video "${filename}" has been successfully processed and cropped.\n\n` +
           `Download it here: http://vidcrop.com/download/${encodeURIComponent(filename)}`
-        );        
+        );
         channel.ack(msg);
-        console.log(`Successfully sended mail for: ${email}, file: ${filename}`);
+        console.log(`Successfully sent mail to: ${email}, file: ${filename}`);
       } catch (err) {
         console.error('Failed to send email:', err.message);
         channel.nack(msg, false, false); // discard or retry later

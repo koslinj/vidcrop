@@ -11,6 +11,6 @@
   "description": "",
   "dependencies": {
     "amqplib": "^0.10.7",
-    "nodemailer": "^6.10.0"
+    "resend": "^4.2.0"
   }
 }

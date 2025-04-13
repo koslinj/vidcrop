@@ -47,7 +47,12 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
-  const actualTime = Date.now()
+  const email = req.body.email;
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  const actualTime = Date.now();
   const fileName = `${actualTime}-${req.file.originalname}`;
   const metaData = { "Content-Type": req.file.mimetype };
 
@@ -58,6 +63,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
       filename: fileName,
       mimetype: req.file.mimetype,
       uploadedAt: new Date(actualTime).toISOString(),
+      email: email
     });
 
     res.json({

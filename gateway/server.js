@@ -21,11 +21,17 @@ app.post("/upload", upload.single('video'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Create form data to send to the other service
+    const email = req.body.email;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Create form data to send to the storage service
     const form = new FormData();
     form.append('video', req.file.buffer, { filename: req.file.originalname });
+    form.append('email', email);
 
-    // Forward the video to the other service
+    // Forward the video and email
     const response = await axios.post(`${STORAGE_SERVICE_URL}/upload`, form);
     res.status(response.status).json(response.data);
   } catch (error) {

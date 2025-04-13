@@ -72,14 +72,14 @@ async function startWorker() {
     async (msg) => {
       if (!msg) return;
 
-      const { filename } = JSON.parse(msg.content.toString());
+      const { filename, email } = JSON.parse(msg.content.toString());
       console.log(`Received file named: ${filename}`);
 
       try {
         const croppedKey = await processVideo(filename);
 
         const notificationMessage = {
-          email: "test@example.com",
+          email: email,
           filename: croppedKey,
         };
 
