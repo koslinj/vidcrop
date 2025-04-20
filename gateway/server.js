@@ -1,14 +1,25 @@
 const express = require("express");
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const axios = require("axios");
 const multer = require("multer");
 const FormData = require("form-data");
 
 const app = express();
 const PORT = process.env.PORT;
-const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL; // File service URL
+const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL;
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+// Proxy config for auth service
+app.use('/auth', createProxyMiddleware({
+  target: AUTH_SERVICE_URL,
+  changeOrigin: true,
+  pathRewrite: {
+    '^/auth': '',
+  },
+}));
 
 app.use(express.json());
 
