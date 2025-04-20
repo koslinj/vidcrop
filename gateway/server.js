@@ -3,6 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const axios = require("axios");
 const multer = require("multer");
 const FormData = require("form-data");
+const { verifyJWT } = require("./util");
 
 const app = express();
 const PORT = process.env.PORT;
@@ -23,8 +24,8 @@ app.use('/auth', createProxyMiddleware({
 
 app.use(express.json());
 
-// Upload Route (Proxy to Storage Service)
-app.post("/upload", upload.single('video'), async (req, res) => {
+// 🚫 Secured Upload Route
+app.post("/upload", verifyJWT, upload.single('video'), async (req, res) => {
   try {
     // Ensure a file is provided
     if (!req.file) {
@@ -50,8 +51,8 @@ app.post("/upload", upload.single('video'), async (req, res) => {
   }
 });
 
-// Download Route (Proxy to Storage Service)
-app.get("/download/:filename", async (req, res) => {
+// Secured Download Route
+app.get("/download/:filename", verifyJWT, async (req, res) => {
   try {
     const response = await axios({
       url: `${STORAGE_SERVICE_URL}/download/${encodeURIComponent(req.params.filename)}`,

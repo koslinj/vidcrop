@@ -21,3 +21,5 @@ spec:
         envFrom:
         - configMapRef:
             name: vidcrop-config
+        - secretRef:
+            name: auth-secret
