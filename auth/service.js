@@ -33,6 +33,7 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
+
   try {
     const result = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
     const user = result.rows[0];
@@ -47,28 +48,19 @@ app.post('/login', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
-    res.json({ token });
+    // Set token in HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Strict',
+      maxAge: 1000 * 60 * 60 * 24, // 1 day
+    });
+
+    res.json({ message: 'Login successful' });
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).send('Server error');
   }
 });
-
-// Protected test route (optional)
-app.get('/me', authenticateToken, async (req, res) => {
-  res.json(req.user);
-});
-
-// Middleware
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.sendStatus(401);
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-}
 
 app.listen(3000, () => console.log('Auth service with JWT running on port 3000'));

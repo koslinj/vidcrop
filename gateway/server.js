@@ -3,6 +3,8 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const axios = require("axios");
 const multer = require("multer");
 const FormData = require("form-data");
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const { verifyJWT } = require("./util");
 
 const app = express();
@@ -12,6 +14,12 @@ const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+app.use(cookieParser());
+app.use(cors({
+  origin: 'http://vidcrop.com:8080', // your Vite dev frontend origin
+  credentials: true, // allow cookies to be sent
+}));
 
 // Proxy config for auth service
 app.use('/auth', createProxyMiddleware({
@@ -72,6 +80,11 @@ app.get("/download/:filename", verifyJWT, async (req, res) => {
 // Health Check
 app.get("/", (req, res) => {
   res.send("Hello, Gateway is running!");
+});
+
+// Test cookie from frontend
+app.get("/test", verifyJWT, (req, res) => {
+  res.send("Cookie auth is working!");
 });
 
 // Start Server
