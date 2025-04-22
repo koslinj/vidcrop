@@ -52,7 +52,7 @@ app.post('/login', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: false,
-      sameSite: 'Strict',
+      sameSite: 'Lax',
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     });
 
@@ -67,7 +67,7 @@ app.post('/logout', (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: false,
-    sameSite: 'Strict',
+    sameSite: 'Lax',
   });
   res.status(200).json({ message: 'Logged out successfully' });
 });
