@@ -63,4 +63,13 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'Strict',
+  });
+  res.status(200).json({ message: 'Logged out successfully' });
+});
+
 app.listen(3000, () => console.log('Auth service with JWT running on port 3000'));
