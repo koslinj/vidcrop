@@ -42,7 +42,7 @@ async function startNotificationWorker() {
           email,
           'Your video has been processed!',
           `The video "${filename}" has been successfully processed and cropped.\n\n` +
-          `Download it here: http://vidcrop.com/download/${encodeURIComponent(filename)}`
+          `Download it here: http://vidcrop.com:8080/download/${encodeURIComponent(filename)}`
         );
         channel.ack(msg);
         console.log(`Successfully sent mail to: ${email}, file: ${filename}`);

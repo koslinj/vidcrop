@@ -92,6 +92,26 @@ app.get("/download/:filename", async (req, res) => {
   }
 });
 
+// Check if File Exists Route
+app.head("/download/:filename", async (req, res) => {
+  const { filename } = req.params;
+
+  try {
+    console.log("Checking existence of file:", filename);
+    await minioClient.statObject(BUCKET_NAME, filename);
+    // If no error, file exists
+    res.sendStatus(200); // OK
+  } catch (error) {
+    console.error("🚨 MinIO Stat Error:", error);
+    if (error.code === 'NoSuchKey' || error.code === 'NotFound') {
+      res.sendStatus(404); // File does not exist
+    } else {
+      res.sendStatus(500); // Other server error
+    }
+  }
+});
+
+
 // Health Check
 app.get("/", (req, res) => {
   res.send("Storage Service is running!");

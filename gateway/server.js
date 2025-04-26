@@ -62,9 +62,7 @@ app.post("/upload", verifyJWT, upload.single('video'), async (req, res) => {
 // Secured Download Route
 app.get("/download/:filename", verifyJWT, async (req, res) => {
   try {
-    const response = await axios({
-      url: `${STORAGE_SERVICE_URL}/download/${encodeURIComponent(req.params.filename)}`,
-      method: "GET",
+    const response = await axios.get(`${STORAGE_SERVICE_URL}/download/${encodeURIComponent(req.params.filename)}`, {
       responseType: "stream",
     });
 
@@ -76,6 +74,21 @@ app.get("/download/:filename", verifyJWT, async (req, res) => {
     res.status(error.response?.status || 500).json({ error: "Download failed" });
   }
 });
+
+// Check if File Exists (Proxy) Route
+app.head("/download/:filename", verifyJWT, async (req, res) => {
+  try {
+    const response = await axios.head(`${STORAGE_SERVICE_URL}/download/${encodeURIComponent(req.params.filename)}`);
+
+    res.sendStatus(response.status); // Should be 200
+  } catch (error) {
+    console.error("🚨 Gateway Head Check Error:", error.response?.data || error.message);
+
+    const status = error.response?.status || 500;
+    res.sendStatus(status); // Forward 404, 500, etc.
+  }
+});
+
 
 // Health Check
 app.get("/", (req, res) => {
