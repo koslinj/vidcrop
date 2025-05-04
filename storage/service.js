@@ -1,19 +1,11 @@
 const express = require("express");
 const multer = require("multer");
 const Minio = require("minio");
-const { Pool } = require('pg');
 const { connectRabbitMQ, sendToQueue } = require("./queue");
+const fileRepository = require("./fileRepository");
 
 const app = express();
 const PORT = process.env.STORAGE_SERVICE_PORT;
-
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD
-});
 
 // Initialize RabbitMQ on app startup
 connectRabbitMQ().catch((err) => {
@@ -75,10 +67,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
 
     console.log(req.user)
     // 2. Store metadata in DB
-    await pool.query(`
-      INSERT INTO files (filename, user_id)
-      VALUES ($1, $2)
-    `, [fileName, userId]);
+    await fileRepository.saveFileMetadata(fileName, userId);
 
     // 3. Send to MQ (if needed)
     sendToQueue({
