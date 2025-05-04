@@ -1,10 +1,19 @@
 const express = require("express");
 const multer = require("multer");
 const Minio = require("minio");
+const { Pool } = require('pg');
 const { connectRabbitMQ, sendToQueue } = require("./queue");
 
 const app = express();
 const PORT = process.env.STORAGE_SERVICE_PORT;
+
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT),
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD
+});
 
 // Initialize RabbitMQ on app startup
 connectRabbitMQ().catch((err) => {
@@ -46,6 +55,11 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     return res.status(400).json({ error: "No file uploaded" });
   }
 
+  const userId = req.get('x-user-id');
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing user ID' });
+  }
+
   const email = req.body.email;
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
@@ -56,8 +70,17 @@ app.post("/upload", upload.single("video"), async (req, res) => {
   const metaData = { "Content-Type": req.file.mimetype };
 
   try {
+    // 1. Upload to MinIO
     await minioClient.putObject(BUCKET_NAME, fileName, req.file.buffer, metaData);
 
+    console.log(req.user)
+    // 2. Store metadata in DB
+    await pool.query(`
+      INSERT INTO files (filename, user_id)
+      VALUES ($1, $2)
+    `, [fileName, userId]);
+
+    // 3. Send to MQ (if needed)
     sendToQueue({
       filename: fileName,
       mimetype: req.file.mimetype,
@@ -70,8 +93,8 @@ app.post("/upload", upload.single("video"), async (req, res) => {
       filename: fileName,
     });
   } catch (error) {
-    console.error("🚨 Upload or MQ Error:", error);
-    res.status(500).json({ error: "File upload or message queue failed" });
+    console.error("🚨 Upload or MQ/DB Error:", error);
+    res.status(500).json({ error: "File upload or MQ/DB error" });
   }
 });
 

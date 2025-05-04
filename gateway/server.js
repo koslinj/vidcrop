@@ -51,7 +51,10 @@ app.post("/upload", verifyJWT, upload.single('video'), async (req, res) => {
     form.append('email', email);
 
     // Forward the video and email
-    const response = await axios.post(`${STORAGE_SERVICE_URL}/upload`, form);
+    const response = await axios.post(
+      `${STORAGE_SERVICE_URL}/upload`,
+      form,
+      { headers: { 'x-user-id': req.user.id }, });
     res.status(response.status).json(response.data);
   } catch (error) {
     console.error("🚨 Upload Proxy Error:", error.response?.data || error.message);
