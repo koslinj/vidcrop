@@ -1,6 +1,7 @@
 const pool = require("./db");
 
 const fileRepository = {
+  // Save file metadata into the database
   async saveFileMetadata(filename, userId) {
     await pool.query(
       `INSERT INTO files (filename, user_id) VALUES ($1, $2)`,
@@ -8,13 +9,14 @@ const fileRepository = {
     );
   },
 
-  // async getFileByName(filename) {
-  //   const result = await pool.query(
-  //     `SELECT * FROM files WHERE filename = $1`,
-  //     [filename]
-  //   );
-  //   return result.rows[0];
-  // },
+  // Get file by filename and user ID to check if it belongs to the user
+  async getFileMetadataByFilenameAndUserId(filename, userId) {
+    const result = await pool.query(
+      `SELECT * FROM files WHERE filename = $1 AND user_id = $2`,
+      [filename, userId]
+    );
+    return result; // Returns the result, including the row count
+  },
 };
 
 module.exports = fileRepository;

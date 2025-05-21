@@ -67,6 +67,7 @@ app.get("/download/:filename", verifyJWT, async (req, res) => {
   try {
     const response = await axios.get(`${STORAGE_SERVICE_URL}/download/${encodeURIComponent(req.params.filename)}`, {
       responseType: "stream",
+      headers: { 'x-user-id': req.user.id }
     });
 
     res.setHeader("Content-Disposition", response.headers["content-disposition"]);

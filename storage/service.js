@@ -3,6 +3,7 @@ const multer = require("multer");
 const Minio = require("minio");
 const { connectRabbitMQ, sendToQueue } = require("./queue");
 const fileRepository = require("./fileRepository");
+const { checkFilePermission } = require("./utils");
 
 const app = express();
 const PORT = process.env.STORAGE_SERVICE_PORT;
@@ -88,7 +89,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
 });
 
 // Download Route
-app.get("/download/:filename", async (req, res) => {
+app.get("/download/:filename", checkFilePermission, async (req, res) => {
   const { filename } = req.params;
 
   try {
