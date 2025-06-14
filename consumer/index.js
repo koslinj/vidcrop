@@ -18,12 +18,12 @@ const minio = new Minio.Client({
 });
 
 // === UTILS ===
-function cropVideoStream(inputStream) {
+function cropVideoStream(inputStream, cropX, cropY, cropWidth, cropHeight) {
   const outputStream = new PassThrough();
 
   ffmpeg(inputStream)
   .inputFormat('mp4')
-  .videoFilters("crop='min(iw,ih)':'min(iw,ih)'")
+  .videoFilters(`crop=${cropWidth}:${cropHeight}:${cropX}:${cropY}`)
   .format('mp4')
   .outputOptions('-movflags frag_keyframe+empty_moov')
   .on('start', cmd => console.log('FFmpeg started:', cmd))
@@ -40,14 +40,14 @@ function cropVideoStream(inputStream) {
   return outputStream;
 }
 
-async function processVideo(filename) {
+async function processVideo(filename, cropX, cropY, cropWidth, cropHeight) {
   const croppedKey = `cropped/${filename}`;
 
   return new Promise((resolve, reject) => {
     minio.getObject(BUCKET, filename, (err, dataStream) => {
       if (err) return reject(err);
 
-      const croppedStream = cropVideoStream(dataStream);
+      const croppedStream = cropVideoStream(dataStream, cropX, cropY, cropWidth, cropHeight);
 
       minio.putObject(BUCKET, croppedKey, croppedStream, (err, etag) => {
         if (err) return reject(err);
@@ -72,11 +72,11 @@ async function startWorker() {
     async (msg) => {
       if (!msg) return;
 
-      const { filename, email } = JSON.parse(msg.content.toString());
+      const { filename, email, cropX, cropY, cropWidth, cropHeight } = JSON.parse(msg.content.toString());
       console.log(`Received file named: ${filename}`);
 
       try {
-        const croppedKey = await processVideo(filename);
+        const croppedKey = await processVideo(filename, cropX, cropY, cropWidth, cropHeight);
 
         const notificationMessage = {
           email: email,

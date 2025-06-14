@@ -53,10 +53,7 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     return res.status(400).json({ error: 'Missing user ID' });
   }
 
-  const email = req.body.email;
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
-  }
+  const { email, cropX, cropY, cropWidth, cropHeight } = req.body;
 
   const actualTime = Date.now();
   const fileName = `${actualTime}-${req.file.originalname}`;
@@ -75,7 +72,11 @@ app.post("/upload", upload.single("video"), async (req, res) => {
       filename: fileName,
       mimetype: req.file.mimetype,
       uploadedAt: new Date(actualTime).toISOString(),
-      email: email
+      email: email,
+      cropX: cropX,
+      cropY: cropY,
+      cropWidth: cropWidth,
+      cropHeight: cropHeight,
     });
 
     res.json({
