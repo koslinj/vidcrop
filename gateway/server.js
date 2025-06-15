@@ -32,6 +32,24 @@ app.use('/auth', createProxyMiddleware({
 
 app.use(express.json());
 
+// Get user files Route
+app.get("/files", verifyJWT, async (req, res) => {
+  try {
+    const response = await axios.get(`${STORAGE_SERVICE_URL}/files`, {
+      headers: { 'x-user-id': req.user.id }
+    });
+
+    res.status(200).json(response.data);
+  } catch (error) {
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+});
+
+
 // 🚫 Secured Upload Route
 app.post("/upload", verifyJWT, upload.single('video'), async (req, res) => {
   try {

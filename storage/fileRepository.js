@@ -17,6 +17,15 @@ const fileRepository = {
     );
     return result; // Returns the result, including the row count
   },
+
+  // Get all files that belong to a specific user
+  async getFilesByUserId(userId) {
+    const result = await pool.query(
+      `SELECT * FROM files WHERE user_id = $1 ORDER BY uploaded_at DESC`,
+      [userId]
+    );
+    return result; // Returns the result, including the row count
+  },
 };
 
 module.exports = fileRepository;

@@ -44,12 +44,28 @@ const BUCKET_NAME = process.env.MINIO_BUCKET;
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// Metadata get Route
+app.get("/files", async (req, res) => {
+  const userId = req.get('x-user-id')
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing user ID' })
+  }
+
+  try {
+    const result = await fileRepository.getFilesByUserId(userId);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching files metadata:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 // Metadata insert Route
 app.post('/files/metadata', async (req, res) => {
-  console.log(req.body)
   try {
     const { filename, userId } = req.body;
-    console.log(filename, userId)
 
     if (!filename || !userId) {
       return res.status(400).json({ error: 'filename and userId are required' });
