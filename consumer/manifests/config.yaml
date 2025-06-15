@@ -9,3 +9,4 @@ data:
   RABBITMQ_URL: "amqp://rabbitmq-service:5672"
   RABBITMQ_QUEUE: "video-processing"
   RABBITMQ_NOTIF_QUEUE: "notification-processing"
+  STORAGE_SERVICE_URL: "http://storage-service:5000"

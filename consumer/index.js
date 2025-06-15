@@ -1,4 +1,5 @@
 const amqp = require('amqplib');
+const axios = require('axios');
 const Minio = require('minio');
 const ffmpeg = require('fluent-ffmpeg');
 const { PassThrough } = require('stream');
@@ -8,6 +9,7 @@ const RABBITMQ_URL = process.env.RABBITMQ_URL;
 const QUEUE = process.env.RABBITMQ_QUEUE;
 const NOTIFICATION_QUEUE = process.env.RABBITMQ_NOTIF_QUEUE;
 const BUCKET = process.env.MINIO_BUCKET;
+const STORAGE_SERVICE_URL = process.env.STORAGE_SERVICE_URL;
 
 const minio = new Minio.Client({
   endPoint: process.env.MINIO_ENDPOINT,
@@ -40,7 +42,7 @@ function cropVideoStream(inputStream, cropX, cropY, cropWidth, cropHeight) {
   return outputStream;
 }
 
-async function processVideo(filename, cropX, cropY, cropWidth, cropHeight) {
+async function processVideo(filename, cropX, cropY, cropWidth, cropHeight, userId) {
   const croppedKey = `cropped/${filename}`;
 
   return new Promise((resolve, reject) => {
@@ -49,10 +51,17 @@ async function processVideo(filename, cropX, cropY, cropWidth, cropHeight) {
 
       const croppedStream = cropVideoStream(dataStream, cropX, cropY, cropWidth, cropHeight);
 
-      minio.putObject(BUCKET, croppedKey, croppedStream, (err, etag) => {
+      minio.putObject(BUCKET, croppedKey, croppedStream, async (err, etag) => {
         if (err) return reject(err);
         console.log(`Uploaded cropped video: ${croppedKey}`);
-        resolve(croppedKey);
+
+        try {
+          await axios.post(`${STORAGE_SERVICE_URL}/files/metadata`, {filename: croppedKey, userId});
+          resolve(croppedKey);
+        } catch (error) {
+          console.log(error)
+          reject(error);
+        }
       });
     });
   });
@@ -72,11 +81,11 @@ async function startWorker() {
     async (msg) => {
       if (!msg) return;
 
-      const { filename, email, cropX, cropY, cropWidth, cropHeight } = JSON.parse(msg.content.toString());
+      const { userId, filename, email, cropX, cropY, cropWidth, cropHeight } = JSON.parse(msg.content.toString());
       console.log(`Received file named: ${filename}`);
 
       try {
-        const croppedKey = await processVideo(filename, cropX, cropY, cropWidth, cropHeight);
+        const croppedKey = await processVideo(filename, cropX, cropY, cropWidth, cropHeight, userId);
 
         const notificationMessage = {
           email: email,

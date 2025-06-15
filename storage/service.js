@@ -6,6 +6,8 @@ const fileRepository = require("./fileRepository");
 const { checkFilePermission } = require("./utils");
 
 const app = express();
+app.use(express.json());
+
 const PORT = process.env.STORAGE_SERVICE_PORT;
 
 // Initialize RabbitMQ on app startup
@@ -42,6 +44,26 @@ const BUCKET_NAME = process.env.MINIO_BUCKET;
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// Metadata insert Route
+app.post('/files/metadata', async (req, res) => {
+  console.log(req.body)
+  try {
+    const { filename, userId } = req.body;
+    console.log(filename, userId)
+
+    if (!filename || !userId) {
+      return res.status(400).json({ error: 'filename and userId are required' });
+    }
+
+    await fileRepository.saveFileMetadata(filename, userId);
+
+    res.status(201).json({ success: true, message: 'Metadata saved' });
+  } catch (error) {
+    console.error('Error saving metadata:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Upload Route (MinIO)
 app.post("/upload", upload.single("video"), async (req, res) => {
   if (!req.file) {
@@ -63,12 +85,12 @@ app.post("/upload", upload.single("video"), async (req, res) => {
     // 1. Upload to MinIO
     await minioClient.putObject(BUCKET_NAME, fileName, req.file.buffer, metaData);
 
-    console.log(req.user)
     // 2. Store metadata in DB
     await fileRepository.saveFileMetadata(fileName, userId);
 
     // 3. Send to MQ (if needed)
     sendToQueue({
+      userId: userId,
       filename: fileName,
       mimetype: req.file.mimetype,
       uploadedAt: new Date(actualTime).toISOString(),
